@@ -7,10 +7,22 @@
 
 const std::vector<std::string> _actions = {"up", "left", "right", "down", "bomb", "detonate"};
 
+typedef struct{
+
+  int X;
+  int Y;
+  std::string ent;
+  int Valor;
+
+}Coordenadas;
+
 class Agent {
 private:
   static std::string my_agent_id;
+  static std::string enemy_agent_id;
   static std::vector<std::string> my_units;
+  static std::vector<std::string> enemy_units;
+  static Coordenadas mapa[15][15];
 
   static int tick;
 
@@ -20,7 +32,10 @@ public:
 };
 
 std::string Agent::my_agent_id;
+std::string Agent::enemy_agent_id;
 std::vector<std::string> Agent::my_units;
+std::vector<std::string> Agent::enemy_units;
+Coordenadas Agent::mapa[15][15];
 
 int Agent::tick;
 
@@ -50,13 +65,95 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
   if (tick == 1)
   {
     my_agent_id = game_state["connection"]["agent_id"];
+    std::cout << my_agent_id << std::endl;
     my_units = game_state["agents"][my_agent_id]["unit_ids"].get<std::vector<std::string>>();
+    if(my_agent_id == "a"){
+      enemy_agent_id = "b";
+      enemy_units = game_state["agents"][enemy_agent_id]["unit_ids"].get<std::vector<std::string>>();
+    }
+    else{
+      enemy_agent_id = "a";
+      enemy_units = game_state["agents"][enemy_agent_id]["unit_ids"].get<std::vector<std::string>>();
+    }
   }
+
+  std::vector<int> My_Cords = game_state["unit_state"][my_units[0]]["coordinates"].get<std::vector<int>>();
+  My_Cords[1] = (My_Cords[1]-14)*-1;
+
+  std::cout << "X: "<< My_Cords[0] << "Y: "<< My_Cords[1]<< std::endl;
+
+  std::vector<int> Enemy_Cords = game_state["unit_state"][enemy_units[0]]["coordinates"].get<std::vector<int>>();
+  Enemy_Cords[1] = (Enemy_Cords[1]-14)*-1;
+
+  std::cout << "X: "<< Enemy_Cords[0] << "Y: "<< Enemy_Cords[1]<< std::endl;
+  
+  int maxX = game_state["world"]["width"];
+  int maxY = game_state["world"]["height"];
+  const json& entidades = game_state["entities"];
+
+  for(int i = 0; i < maxX; i++){
+    for(int j = 0; j < maxY; j++){
+      mapa[i][j].X = i;
+      mapa[i][j].Y = j;
+      mapa[i][j].ent = "v";
+      mapa[i][j].Valor = 0;
+    }
+  }  
+
+
+  for (const auto& entity_string: entidades){
+    int x = entity_string["x"];
+    int y = entity_string["y"];
+    y = (y-14) * -1;
+    mapa[y][x].ent = entity_string["type"];
+
+    if(entity_string["type"] == "b"||entity_string["type"] == "x"){
+      mapa[y][x].Valor = -5;
+    }
+    else{
+      mapa[y][x].Valor = 0;
+    }
+
+    if(entity_string["type"] == "w"){
+      mapa[y][x].Valor = -2;
+    }
+
+    if(entity_string["type"] == "o"){
+      mapa[y][x].Valor = -3;
+    }
+    if(entity_string["type"] == "m"){
+      mapa[y][x].Valor = -4;
+    }
+
+    if(entity_string["type"] == "bp"||entity_string["type"] == "fp"){
+      mapa[y][x].Valor = 1;
+    }
+    
+  }
+
+  mapa[My_Cords[1]][My_Cords[0]].ent = "P"; // remover futuramente
+  mapa[Enemy_Cords[1]][Enemy_Cords[0]].ent = "E";
+  mapa[Enemy_Cords[1]][Enemy_Cords[0]].Valor = -1;
+
+  for(size_t i = 0; i< maxX; i++){
+    for(size_t j = 0; j< maxY; j++){
+      std::cout << mapa[i][j].ent << " ";
+    }
+
+    std::cout << " / ";
+
+    for(size_t j = 0; j< maxY; j++){
+      std::cout << mapa[i][j].Valor << " ";
+    }
+
+    std::cout << std::endl; 
+  }
+  
 
   srand(1234567 * (my_agent_id == "a" ? 1 : 0) + tick * 100 + 13);
 
   // send each (alive) unit a random action
-  for (const auto& unit_id: my_units)
+  for (const auto unit_id: my_units)
   {
     const json& unit = game_state["unit_state"][unit_id];
     if (unit["hp"] <= 0) continue;
