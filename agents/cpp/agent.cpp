@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <random>
+#include <list>
 
 const std::vector<std::string> _actions = {"up", "left", "right", "down", "bomb", "detonate"};
 
@@ -12,7 +13,8 @@ typedef struct{
   int X;
   int Y;
   std::string ent;
-  int Valor;
+  int valor;
+  int Parentes[2];
 
 }Coordenadas;
 
@@ -38,6 +40,30 @@ std::vector<std::string> Agent::enemy_units;
 Coordenadas Agent::mapa[15][15];
 
 int Agent::tick;
+
+/*list<Coordenadas> OPEN;
+list<Coordenadas> CLOSED;
+
+Coordenadas Start, Goal;
+
+bool bombaOk(Coordenadas Pos,Coordenadas mapa[15][15]){
+
+  if(mapa[Pos.X][Pos.Y-1].ent == "v"){
+    return true;
+  }
+  else if(mapa[Pos.X][Pos.Y+1].ent == "v"){
+    return true;
+  }
+  else if(mapa[Pos.X-1][Pos.Y].ent == "v"){
+    return true;
+  }
+  else if(mapa[Pos.X+1][Pos.Y].ent == "v"){
+    return true;
+  }
+  else{
+    return false;
+  }
+}*/
 
 void Agent::run() 
 {
@@ -96,7 +122,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
       mapa[i][j].X = i;
       mapa[i][j].Y = j;
       mapa[i][j].ent = "v";
-      mapa[i][j].Valor = 0;
+      mapa[i][j].valor = 0;
     }
   }  
 
@@ -108,32 +134,48 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     mapa[y][x].ent = entity_string["type"];
 
     if(entity_string["type"] == "b"||entity_string["type"] == "x"){
-      mapa[y][x].Valor = -5;
+      if(entity_string["type"] == "b"){
+        for(int i = 0; i<= (int)entity_string["blast_diameter"]/2;i++){
+          if(y-i>=0 && y-i<15){
+            mapa[y-i][x].valor = -5;
+          }
+          if(y+i>=0 && y+i<15){
+            mapa[y+i][x].valor = -5;
+          }
+          if(x-i>=0 && x-i<15){
+            mapa[y][x-i].valor = -5;
+          }
+          if(x+i>=0 && x+i<15){
+            mapa[y][x+i].valor = -5;
+          }
+        }
+      }
+      mapa[y][x].valor = -5;
     }
     else{
-      mapa[y][x].Valor = 0;
+      mapa[y][x].valor = 0;
     }
 
     if(entity_string["type"] == "w"){
-      mapa[y][x].Valor = -2;
+      mapa[y][x].valor = -2;
     }
 
     if(entity_string["type"] == "o"){
-      mapa[y][x].Valor = -3;
+      mapa[y][x].valor = -3;
     }
     if(entity_string["type"] == "m"){
-      mapa[y][x].Valor = -4;
+      mapa[y][x].valor = -4;
     }
 
     if(entity_string["type"] == "bp"||entity_string["type"] == "fp"){
-      mapa[y][x].Valor = 1;
+      mapa[y][x].valor = 1;
     }
     
   }
 
   mapa[My_Cords[1]][My_Cords[0]].ent = "P"; // remover futuramente
   mapa[Enemy_Cords[1]][Enemy_Cords[0]].ent = "E";
-  mapa[Enemy_Cords[1]][Enemy_Cords[0]].Valor = -1;
+  mapa[Enemy_Cords[1]][Enemy_Cords[0]].valor = -1;
 
   for(size_t i = 0; i< maxX; i++){
     for(size_t j = 0; j< maxY; j++){
@@ -143,7 +185,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     std::cout << " / ";
 
     for(size_t j = 0; j< maxY; j++){
-      std::cout << mapa[i][j].Valor << " ";
+      std::cout << mapa[i][j].valor << " ";
     }
 
     std::cout << std::endl; 
