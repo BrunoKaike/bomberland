@@ -30,6 +30,7 @@ private:
   static int tick;
 
   static void on_game_tick(int tick, const json& game_state);
+  static int distanciaAbsoluta(int x1,int y1,int x2,int y2);
 public:
   static void run();
 };
@@ -127,6 +128,8 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     }
   }  
 
+  Estado estadoGame;
+  estadoGame.powerUpNoMapa = false;
 
   for (const auto& entity_string: entidades){
     int x = entity_string["x"];
@@ -170,6 +173,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
 
     if(entity_string["type"] == "bp"||entity_string["type"] == "fp"){
       mapa[y][x].valor = 1;
+      estadoGame.powerUpNoMapa = true;
     }
     
   }
@@ -190,6 +194,23 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     }
 
     std::cout << std::endl; 
+  }
+  
+  //INICIALIZANDO ESTADOS
+  
+  estadoGame.estaEmPerigo = (mapa[My_Cords[1]][My_Cords[0]].valor == -5) ? true : false;
+  estadoGame.inimigoEmPerigo = (mapa[Enemy_Cords[1]][Enemy_Cords[0]].valor == -5) ? true : false;
+  estadoGame.estaVizinho = (distanciaAbsoluta(My_Cords[1], My_Cords[0], Enemy_Cords[1], Enemy_Cords[0])==1) ? true : false;
+
+  int duracaoPowerUpGelo = 15;
+  
+  estadoGame.pegouPowerUpGelo - (mapa[My_Cords[1]][My_Cords[0]].ent == "fp") ? true : false;
+  if(estadoGame.pegouPowerUpGelo ==  true){
+    tempo = tick + duracaoPowerUpGelo;
+  }
+
+  if(tick <= tempo){
+    estadoGame.pegouPowerUpGelo = true;
   }
   
 
@@ -231,8 +252,15 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
   }
 }
 
+int Agent::distanciaAbsoluta(int x1,int y1,int x2,int y2) {
+  int distanciaX = x1 - x2;
+  int distanciaY = y1 - y2;
+  return abs(distanciaX) + abs(distanciaY);
+}
+
 int main()
 {
   Agent::run();
 }
+
 
