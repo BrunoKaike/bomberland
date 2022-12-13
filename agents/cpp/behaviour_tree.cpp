@@ -128,15 +128,32 @@ class PerseguirInimigo : public Node {
 		}
 };
 
+class Default : public Node {  
+	private:
+		bool input;
+	public:
+		Default (bool input) : input(input) {}
+		virtual bool run() override {
+			if(input == true){
+
+        ação = "quebrarCaixa";
+        
+      }
+
+      return input;
+		}
+};
+
 string behaviourTree(Estado estadoGame) {
 
   Selector* main = new Selector;
   Selector* selectorGeral = new Selector;
-  PosicionarBomba* posicionarBomba = new PosicionarBomba(estadoGame.estaVizinho && estadoGame.pegouPowerUpGelo);
-  ExplodirBomba* explodirBomba = new ExplodirBomba(estadoGame.inimigoEmPerigo && !estadoGame.estaEmPerigo);
-  PegarPowerUp* pegarPowerUp = new PegarPowerUp(estadoGame.powerUpNoMapa);
-  PerseguirInimigo* perseguirInimigo = new PerseguirInimigo(estadoGame.pegouPowerUpGelo && !estadoGame.estaEmPerigo);
+  PosicionarBomba* posicionarBomba = new PosicionarBomba(!estadoGame.estaEmPerigo &&estadoGame.estaVizinho && estadoGame.pegouPowerUpGelo);
+  ExplodirBomba* explodirBomba = new ExplodirBomba(!estadoGame.estaEmPerigo && estadoGame.inimigoEmPerigo && !estadoGame.estaVizinho);
+  PegarPowerUp* pegarPowerUp = new PegarPowerUp(!estadoGame.estaEmPerigo && estadoGame.powerUpNoMapa && estadoGame.pegouPowerUpGelo);
+  PerseguirInimigo* perseguirInimigo = new PerseguirInimigo(!estadoGame.estaEmPerigo && !estadoGame.estaVizinho && estadoGame.pegouPowerUpGelo);
   FugirDePerigo* fugirDePerigo = new FugirDePerigo(estadoGame.estaEmPerigo);
+  Default* acaoDefault = new Default(true);
 
   main->addChild (selectorGeral);
 	
@@ -145,6 +162,7 @@ string behaviourTree(Estado estadoGame) {
 	selectorGeral->addChild (perseguirInimigo);
   selectorGeral->addChild (posicionarBomba);
   selectorGeral->addChild (explodirBomba);
+  selectorGeral->addChild (acaoDefault);
   
 	while (!main->run()) {}
 
