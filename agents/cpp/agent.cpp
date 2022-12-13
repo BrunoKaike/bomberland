@@ -1,4 +1,5 @@
 #include "game_state.hpp"
+#include "behaviour_tree.cpp"
 
 #include <string>
 #include <stdlib.h>
