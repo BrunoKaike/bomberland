@@ -160,13 +160,13 @@ string behaviourTree(Estado estadoGame) {
 	selectorGeral->addChild (fugirDePerigo);
 	selectorGeral->addChild (pegarPowerUp);
 	selectorGeral->addChild (perseguirInimigo);
-  selectorGeral->addChild (posicionarBomba);
-  selectorGeral->addChild (explodirBomba);
-  selectorGeral->addChild (acaoDefault);
+  	selectorGeral->addChild (posicionarBomba);
+  	selectorGeral->addChild (explodirBomba);
+  	selectorGeral->addChild (acaoDefault);
   
 	while (!main->run()) {}
 
-	cout << "Acao determinada pera árvore de comportamento: " << acao << endl;
+	std::cout << "Acao determinada pera árvore de comportamento: " << acao << std::endl;
   
 	return acao;
 }

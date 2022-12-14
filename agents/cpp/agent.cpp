@@ -50,26 +50,27 @@ int Agent::tick;
 int tempo;
 std::string action;
 
-/*
 
-bool bombaOk(Coordenadas Pos,Coordenadas mapa[15][15]){
 
-  if(mapa[Pos.X][Pos.Y-1].ent == "v"){
+bool bombaOk(int X, int Y, Coordenadas mapa[15][15]){
+
+  if(mapa[Y-1][X-1].ent == "v"){
     return true;
   }
-  else if(mapa[Pos.X][Pos.Y+1].ent == "v"){
+  else if(mapa[Y-1][X+1].ent == "v"){
     return true;
   }
-  else if(mapa[Pos.X-1][Pos.Y].ent == "v"){
+  else if(mapa[Y+1][X-1].ent == "v"){
     return true;
   }
-  else if(mapa[Pos.X+1][Pos.Y].ent == "v"){
+  else if(mapa[Y+1][X+1].ent == "v"){
     return true;
   }
   else{
     return false;
   }
-}*/
+  
+}
 
 void Agent::run() 
 {
@@ -125,8 +126,8 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
 
   for(int i = 0; i < maxX; i++){
     for(int j = 0; j < maxY; j++){
-      mapa[i][j].X = i;
-      mapa[i][j].Y = j;
+      mapa[i][j].X = j;
+      mapa[i][j].Y = i;
       mapa[i][j].ent = "v";
       mapa[i][j].valor = 0;
     }
@@ -207,10 +208,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
   estadoGame.inimigoEmPerigo = (mapa[Enemy_Cords[1]][Enemy_Cords[0]].valor == -5) ? true : false;
   estadoGame.estaVizinho = (distanciaAbsoluta(My_Cords[1], My_Cords[0], Enemy_Cords[1], Enemy_Cords[0])==1) ? true : false;
 
-  /*std::cout<< "A" <<estadoGame.estaEmPerigo <<std::endl;
-  std::cout<< "B" <<estadoGame.inimigoEmPerigo <<std::endl;
-  std::cout<< "C" <<estadoGame.estaVizinho <<std::endl;
-  std::cout<< "D" <<estadoGame.powerUpNoMapa <<std::endl;*/
+ 
 
   int duracaoPowerUpGelo = 15;
   
@@ -222,20 +220,21 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
   if(tick <= tempo){
     estadoGame.pegouPowerUpGelo = true;
   }
-  //std::cout<< "E" <<estadoGame.pegouPowerUpGelo <<std::endl;
+
+  behaviourTree(estadoGame);
 
   Start.X = My_Cords[0];
   Start.Y = My_Cords[1];
-  Start.custo = mapa[Start.X][Start.Y].valor;
-  Start.ent = mapa[Start.X][Start.Y].ent;
+  Start.custo = mapa[Start.Y][Start.X].valor;
+  Start.ent = mapa[Start.Y][Start.X].ent;
   Start.dist = 0; //H
   Start.Parentes[0] = -1, Start.Parentes[1] = -1;
 
   Movement = Start;
 
-  Goal.X = 7;
-  Goal.Y = 7;
-  Goal.valor = mapa[Goal.X][Goal.Y].valor;
+  Goal.X = Enemy_Cords[0]+1;
+  Goal.Y = Enemy_Cords[1];
+  Goal.valor = mapa[Goal.Y][Goal.X].valor;
 
   if(Start.X == Goal.X && Start.Y == Goal.Y){
     std::cout<<"CHEGUEI!!!"<<std::endl;
@@ -248,15 +247,18 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     CAMINHO.clear();
 
     OPEN.push_back(Start);
+
+    bool stop;
     
     do{
       int index = 0;
       int min = abs(OPEN[0].valor)+OPEN[0].dist;
+      //std::cout<<"OP"<<"X:"<<OPEN[0].X<<" Y: "<<OPEN[0].Y<<std::endl;
       Actual = OPEN[0];
 
       for(int i=0; i < OPEN.size();i++){
         if(abs(OPEN[i].valor)+OPEN[i].dist < min){
-          std::cout<<"MUDEI: "<<"Actual - X:"<<Actual.X<<" Y: "<<Actual.Y<<" valor: "<<Actual.valor<<" ent: "<<Actual.ent<<std::endl;
+          //std::cout<<"MUDEI: "<<"Actual - X:"<<Actual.X<<" Y: "<<Actual.Y<<" valor: "<<Actual.valor<<" ent: "<<Actual.ent<<std::endl;
           Actual = OPEN[i];
           index = i;
           min = abs(OPEN[i].valor)+OPEN[i].dist;
@@ -268,24 +270,22 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
       if(Actual.X == Goal.X && Actual.Y == Goal.Y){
         std::cout<<"ACHEI!!!"<<std::endl;
         CAMINHO.push_back(Actual);
-        for(int i = 0; i<CLOSED.size();i++){
 
-          if(Actual.Parentes[0]!=-1 && Actual.Parentes[1]!=-1){
-
-            for(int j=0;j<CLOSED.size();j++){
+        do{
+          for(int j=0;j<CLOSED.size();j++){
               if(Actual.Parentes[0] == CLOSED[j].X && Actual.Parentes[1] == CLOSED[j].Y){
                 Actual = CLOSED[j];
               }
             }
 
             CAMINHO.push_back(Actual);
-          }
 
-          else{
-            Movement = CAMINHO[CAMINHO.size()-2];
-          }
-        }
-        
+        }while(Actual.Parentes[0]!=-1 && Actual.Parentes[1]!=-1);
+          
+        std::cout<<"Movement!"<<std::endl;
+        Movement = CAMINHO[CAMINHO.size()-2];
+        stop = true;
+        break;
       
       }
       else{
@@ -296,12 +296,12 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
         esq = mapa[Actual.Y][Actual.X-1],
         dir = mapa[Actual.Y][Actual.X+1];
 
-        std::cout<<"Actual - X:"<<Actual.X<<" Y: "<<Actual.Y<<" valor: "<<Actual.valor<<" ent: "<<Actual.ent<<std::endl;
-        std::cout<<"cima - X:"<<cima.Y<<" Y: "<<cima.X<<" valor: "<<cima.valor<<" ent: "<<cima.ent<<std::endl;
-        std::cout<<"baix - X:"<<baixo.Y<<" Y: "<<baixo.X<<" valor: "<<baixo.valor<<" ent: "<<baixo.ent<<std::endl;
-        std::cout<<"esq - X:"<<esq.Y<<" Y: "<<esq.X<<" valor: "<<esq.valor<<" ent: "<<esq.ent<<std::endl;
-        std::cout<<"dir - X:"<<dir.Y<<" Y: "<<dir.X<<" valor: "<<dir.valor<<" ent: "<<dir.ent<<std::endl;
 
+        std::cout<<"Actual - X:"<<Actual.X<<" Y: "<<Actual.Y<<" valor: "<<Actual.valor<<" ent: "<<Actual.ent <<std::endl;
+        std::cout<<"cima - X:"<<cima.X<<" Y: "<<cima.Y<<" valor: "<<cima.valor<<" ent: "<<cima.ent << cima.dist  <<std::endl;
+        std::cout<<"baix - X:"<<baixo.X<<" Y: "<<baixo.Y<<" valor: "<<baixo.valor<<" ent: "<<baixo.ent << baixo.dist<<std::endl;
+        std::cout<<"esq - X:"<<esq.X<<" Y: "<<esq.Y<<" valor: "<<esq.valor<<" ent: "<<esq.ent<<std::endl;
+        std::cout<<"dir - X:"<<dir.X<<" Y: "<<dir.Y<<" valor: "<<dir.valor<<" ent: "<<dir.ent <<std::endl;
         if(cima.ent == "v" && cima.valor >= -3){
           for(int i=0;i<CLOSED.size();i++){
             if (cima.X == CLOSED[i].X && cima.Y == CLOSED[i].Y){
@@ -314,8 +314,12 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
             cima.Parentes[0] = Actual.X;
             cima.Parentes[1] = Actual.Y;
             cima.custo = abs(Actual.valor) + 1; //G
-            cima.dist = abs(cima.X - Goal.X) - abs(cima.Y - Goal.Y); //H
+            cima.dist = abs(cima.X - Goal.X) + abs(cima.Y - Goal.Y); //H
+            std::cout<<"cima HEURISTICA"<< cima.dist  <<std::endl;
             OPEN.push_back(cima);
+            //std::cout<<"OP"<<"X:"<<OPEN[0].X<<" Y: "<<OPEN[0].Y<<std::endl;
+            //std::cout<<"OP"<<"X:"<<cima.X<<" Y: "<<cima.Y<<std::endl;
+
           }
         }
         cond = 0;
@@ -331,7 +335,8 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
             baixo.Parentes[0] = Actual.X;
             baixo.Parentes[1] = Actual.Y;
             baixo.custo = abs(Actual.valor)+1; //G
-            baixo.dist = abs(baixo.X - Goal.X) - abs(baixo.Y - Goal.Y); //H
+            baixo.dist = abs(baixo.X - Goal.X) + abs(baixo.Y - Goal.Y); //H
+            std::cout<<"baixo HEURISTICA"<< baixo.dist  <<std::endl;
             OPEN.push_back(baixo);
           }
         }
@@ -349,7 +354,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
             esq.Parentes[0] = Actual.X;
             esq.Parentes[1] = Actual.Y;
             esq.custo = abs(Actual.valor)+1; //G
-            esq.dist = abs(esq.X - Goal.X) - abs(esq.Y - Goal.Y); //H
+            esq.dist = abs(esq.X - Goal.X) + abs(esq.Y - Goal.Y); //H
             OPEN.push_back(esq);
           }
           
@@ -367,7 +372,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
             dir.Parentes[0] = Actual.X;
             dir.Parentes[1] = Actual.Y;
             dir.custo = Actual.valor; //G
-            dir.dist = abs(dir.X - Goal.X) - abs(dir.Y - Goal.Y); //H
+            dir.dist = abs(dir.X - Goal.X) + abs(dir.Y - Goal.Y); //H
             OPEN.push_back(dir);
           }
         }
@@ -379,6 +384,8 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     std::cout<<"SAÍ DO WHILE / "<<Movement.X<<" "<<Movement.Y<<std::endl;
   }
   
+  std::cout<<"XM"<<Movement.X <<"YM"<<Movement.Y <<"XMC"<<My_Cords[0] <<"YMC"<<My_Cords[1]<<std::endl;
+
   if(Movement.Y == My_Cords[1]-1){
     action = "up";
   }
