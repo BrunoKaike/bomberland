@@ -54,9 +54,9 @@ std::vector<Coordenadas> OPEN, CLOSED, CAMINHO;
 Coordenadas Start,Goal,Actual,Movement;
 
 int Agent::tick;
-int bombas = 0;
 int tempo;
 std::string action;
+int bombas = 0;
 
 
 
@@ -220,7 +220,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
 
   int duracaoPowerUpGelo = 15;
   
-  estadoGame.pegouPowerUpGelo - (mapa[My_Cords[1]][My_Cords[0]].ent == "fp") ? true : false;
+  estadoGame.pegouPowerUpGelo = (mapa[My_Cords[1]][My_Cords[0]].ent == "fp") ? true : false;
   if(estadoGame.pegouPowerUpGelo ==  true){
     tempo = tick + duracaoPowerUpGelo;
   }
@@ -290,6 +290,8 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
         Movement = A_Estrela(mapa);
         if(Start.X == Goal.X && Start.Y == Goal.Y){
           action = "bomb";
+          estadoGame.explodeCaixa = true;
+          bombas++;
         }
       }
     }
@@ -297,11 +299,14 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
       Movement = A_Estrela(mapa);
       if(Start.X == Goal.X && Start.Y == Goal.Y){
           action = "bomb";
+          estadoGame.explodeCaixa = true;
+          bombas++;
       }
     }
 
   } else if(saida == "pegarPowerUp"){
     Goal = power(mapa);
+    std::cout<<"ENT: "<<Goal.ent<<std::endl;
     Movement = A_Estrela(mapa);
 
   } else if(saida == "perseguirInimigo"){
@@ -444,7 +449,7 @@ Coordenadas Agent::A_Estrela(Coordenadas mapa[15][15]){
         }
         
         
-        if(cima.ent == "v" && cima.valor >= -3){
+        if((cima.ent == "v" || cima.ent == "fp" || cima.ent == "bp")  && cima.valor >= -3){
           for(int i=0;i<CLOSED.size();i++){
             if (cima.X == CLOSED[i].X && cima.Y == CLOSED[i].Y){
               cond = 1; 
@@ -462,7 +467,7 @@ Coordenadas Agent::A_Estrela(Coordenadas mapa[15][15]){
            }
         }
         cond = 0;
-        if(baixo.ent == "v" && baixo.valor >= -3){
+        if((baixo.ent == "v" || baixo.ent == "fp" || baixo.ent == "bp") && baixo.valor >= -3){
           for(int i=0;i<CLOSED.size();i++){
             if (baixo.X == CLOSED[i].X && baixo.Y == CLOSED[i].Y){
               cond = 1; 
@@ -479,7 +484,7 @@ Coordenadas Agent::A_Estrela(Coordenadas mapa[15][15]){
           }
         
           cond = 0;
-          if(esq.ent == "v" && esq.valor >= -3){
+          if((esq.ent == "v" || esq.ent == "fp" || esq.ent == "bp") && esq.valor >= -3){
             for(int i=0;i<CLOSED.size();i++){
              if (esq.X == CLOSED[i].X && esq.Y == CLOSED[i].Y){
                cond = 1; 
@@ -496,7 +501,7 @@ Coordenadas Agent::A_Estrela(Coordenadas mapa[15][15]){
           
           }
           cond = 0;
-          if(dir.ent == "v" && dir.valor >= -3){
+          if((dir.ent == "v" || dir.ent == "fp" || dir.ent == "bp") && dir.valor >= -3){
             for(int i=0;i<CLOSED.size();i++){
               if (dir.X == CLOSED[i].X && dir.Y == CLOSED[i].Y){
                 cond = 1; 
@@ -894,7 +899,6 @@ Coordenadas Agent::power(Coordenadas mapa[15][15]){
             OPEN.push_back(cima);
           }
         }
-          
         
         cond = 0;
         if(baixo.ent == "fp" || baixo.ent == "bp"){
