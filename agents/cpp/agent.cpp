@@ -35,6 +35,7 @@ private:
   static int distanciaAbsoluta(int x1,int y1,int x2,int y2);
   static Coordenadas A_Estrela(Coordenadas mapa[15][15]);
   static Coordenadas A_Estrela_Fuga(Coordenadas mapa[15][15]);
+  static Coordenadas A_Estrela_Ignora_Bombas(Coordenadas mapa[15][15]);
   static Coordenadas caixa(Coordenadas mapa[15][15]);
   static Coordenadas pedra(Coordenadas mapa[15][15]);
   static Coordenadas power(Coordenadas mapa[15][15]);
@@ -166,6 +167,21 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
             mapa[y][x+i].valor = -5;
           }
         }
+      } else if(entity_string["type"] == "x"){
+          for(int i = 0; i<= 1;i++){
+          if(y-i>=0 && y-i<15){
+            mapa[y-i][x].valor = -5;
+          }
+          if(y+i>=0 && y+i<15){
+            mapa[y+i][x].valor = -5;
+          }
+          if(x-i>=0 && x-i<15){
+            mapa[y][x-i].valor = -5;
+          }
+          if(x+i>=0 && x+i<15){
+            mapa[y][x+i].valor = -5;
+          }
+        }
       }
       mapa[y][x].valor = -5;
     }
@@ -213,12 +229,30 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
   //INICIALIZANDO ESTADOS
   
   estadoGame.estaEmPerigo = (mapa[My_Cords[1]][My_Cords[0]].valor == -5) ? true : false;
+  estadoGame.inimigoEmPerigo = false;
+  for (const auto unit_id: my_units){
+        const json& entities = game_state["entities"];
+          for (const auto& entity: entities) 
+          {
+            if (entity["type"] == "b" && entity["unit_id"] == unit_id) 
+            {
+              int x = entity["x"], y = entity["y"];
+              y = (y-14) * -1;
+              if(bombas>0){
+                  if(abs(Enemy_Cords[0]-x)<=(int)entity["blast_diameter"]/2 ||abs(Enemy_Cords[1]-y)<=(int)entity["blast_diameter"]/2){
+                    estadoGame.inimigoEmPerigo = true;
+                    break;
+                  }
+              }
+              
+            }
+          }
+      }
+
   estadoGame.inimigoEmPerigo = (mapa[Enemy_Cords[1]][Enemy_Cords[0]].valor == -5) ? true : false;
   estadoGame.estaVizinho = (distanciaAbsoluta(My_Cords[1], My_Cords[0], Enemy_Cords[1], Enemy_Cords[0])==1) ? true : false;
 
- 
-
-  int duracaoPowerUpGelo = 15;
+  int duracaoPowerUpGelo = 20;
   
   estadoGame.pegouPowerUpGelo = (mapa[My_Cords[1]][My_Cords[0]].ent == "fp") ? true : false;
   if(estadoGame.pegouPowerUpGelo ==  true){
@@ -227,6 +261,10 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
 
   if(tick <= tempo){
     estadoGame.pegouPowerUpGelo = true;
+  }
+
+  if(bombas>0){
+    estadoGame.explodeCaixa = true;
   }
 
   std::string saida = behaviourTree(estadoGame);
@@ -263,10 +301,11 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
             int x = entity["x"], y = entity["y"];
             y = (y-14) * -1;
             if(bombas>0){
-                if((abs(Enemy_Cords[0]-x)<=(int)entity["blast_diameter"]/2 ||abs(Enemy_Cords[1]-y)<=(int)entity["blast_diameter"]/2
-                  || mapa[y-1][x].ent == "w" || mapa[y+1][x].ent == "w" || mapa[y][x-1].ent == "w" || mapa[y][x+1].ent == "w"
-                  || mapa[y-1][x].ent == "o" || mapa[y+1][x].ent == "o" || mapa[y][x-1].ent == "0" || mapa[y][x+1].ent == "o") && !estadoGame.estaEmPerigo){
-                  GameState::send_detonate(x, y, unit_id);
+                std::cout<<mapa[y-1][x].ent<<" "<<mapa[y+1][x].ent<<" "<<mapa[y][x+1].ent<<" "<<mapa[y][x-1].ent<<std::endl;
+                if(abs(Enemy_Cords[0]-x)<=(int)entity["blast_diameter"]/2 ||abs(Enemy_Cords[1]-y)<=(int)entity["blast_diameter"]/2
+                  || !estadoGame.estaEmPerigo){
+                  GameState::send_detonate(14-y, x, unit_id);
+                  bombas--;
                   break;
                 }
             }
@@ -311,7 +350,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
 
   } else if(saida == "perseguirInimigo"){
     Goal.X = Enemy_Cords[0], Goal.Y = Enemy_Cords[1];
-    Movement = A_Estrela(mapa); 
+    Movement = A_Estrela_Ignora_Bombas(mapa); 
   }
 
 
@@ -502,6 +541,148 @@ Coordenadas Agent::A_Estrela(Coordenadas mapa[15][15]){
           }
           cond = 0;
           if((dir.ent == "v" || dir.ent == "fp" || dir.ent == "bp") && dir.valor >= -3){
+            for(int i=0;i<CLOSED.size();i++){
+              if (dir.X == CLOSED[i].X && dir.Y == CLOSED[i].Y){
+                cond = 1; 
+                break;
+             }
+            }
+            if(cond!=1){
+              dir.Parentes[0] = Actual.X;
+              dir.Parentes[1] = Actual.Y;
+              dir.custo = Actual.valor; //G
+              dir.dist = abs(dir.X - Goal.X) + abs(dir.Y - Goal.Y); //H
+              OPEN.push_back(dir);
+            }
+          }
+          CLOSED.push_back(Actual);
+        
+      }
+
+    }while(!OPEN.empty());
+
+    return Start;
+}
+
+Coordenadas Agent::A_Estrela_Ignora_Bombas(Coordenadas mapa[15][15]){
+
+  Coordenadas caminho;
+
+  OPEN.clear();
+  CLOSED.clear();
+  CAMINHO.clear();
+
+  OPEN.push_back(Start);
+
+    bool stop;
+    
+    do{
+      int index = 0;
+      int min = abs(OPEN[0].valor)+OPEN[0].dist;
+      Actual = OPEN[0];
+
+      for(int i=0; i < OPEN.size();i++){
+        if(abs(OPEN[i].valor)+OPEN[i].dist < min){
+          Actual = OPEN[i];
+          index = i;
+          min = abs(OPEN[i].valor)+OPEN[i].dist;
+        }
+      }
+      
+        OPEN.erase(OPEN.begin()+index);
+
+      if(Actual.X == Goal.X && Actual.Y == Goal.Y){
+        std::cout<<"ACHEI!!!"<<std::endl;
+        CAMINHO.push_back(Actual);
+
+        do{
+          for(int j=0;j<CLOSED.size();j++){
+              if(Actual.Parentes[0] == CLOSED[j].X && Actual.Parentes[1] == CLOSED[j].Y){
+                Actual = CLOSED[j];
+              }
+            }
+
+            CAMINHO.push_back(Actual);
+
+        }while(Actual.Parentes[0]!=-1 && Actual.Parentes[1]!=-1);
+          
+        std::cout<<"Movement!"<<std::endl;
+        caminho = CAMINHO[CAMINHO.size()-2];
+        stop = true;
+        return caminho;
+      
+      }
+      else{
+        int cond = 0;
+        Coordenadas cima ,baixo, esq, dir;
+        
+        if(Actual.Y-1>=0){
+          cima = mapa[Actual.Y-1][Actual.X];
+        }
+        if(Actual.Y+1<15){
+          baixo = mapa[Actual.Y+1][Actual.X];
+        }
+        if(Actual.X-1>=0){
+          esq = mapa[Actual.Y][Actual.X-1];
+        }
+        if(Actual.X+1<15){
+          dir = mapa[Actual.Y][Actual.X+1];
+        }
+        
+        
+        if((cima.ent == "v" || cima.ent == "fp" || cima.ent == "bp")  && cima.valor >= -5){
+          for(int i=0;i<CLOSED.size();i++){
+            if (cima.X == CLOSED[i].X && cima.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            cima.Parentes[0] = Actual.X;
+            cima.Parentes[1] = Actual.Y;
+            cima.custo = abs(Actual.valor) + 1; //G
+            cima.dist = abs(cima.X - Goal.X) + abs(cima.Y - Goal.Y); //H
+            OPEN.push_back(cima);
+            //std::cout<<"OP"<<"X:"<<OPEN[0].X<<" Y: "<<OPEN[0].Y<<std::endl;
+            //std::cout<<"OP"<<"X:"<<cima.X<<" Y: "<<cima.Y<<std::endl;
+           }
+        }
+        cond = 0;
+        if((baixo.ent == "v" || baixo.ent == "fp" || baixo.ent == "bp") && baixo.valor >= -5){
+          for(int i=0;i<CLOSED.size();i++){
+            if (baixo.X == CLOSED[i].X && baixo.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+           }
+          }
+          if(cond !=1){
+            baixo.Parentes[0] = Actual.X;
+              baixo.Parentes[1] = Actual.Y;
+             baixo.custo = abs(Actual.valor)+1; //G
+             baixo.dist = abs(baixo.X - Goal.X) + abs(baixo.Y - Goal.Y); //H
+             OPEN.push_back(baixo);
+            }
+          }
+        
+          cond = 0;
+          if((esq.ent == "v" || esq.ent == "fp" || esq.ent == "bp") && esq.valor >= -5){
+            for(int i=0;i<CLOSED.size();i++){
+             if (esq.X == CLOSED[i].X && esq.Y == CLOSED[i].Y){
+               cond = 1; 
+               break;
+              }
+            }
+            if(cond !=1){
+              esq.Parentes[0] = Actual.X;
+              esq.Parentes[1] = Actual.Y;
+              esq.custo = abs(Actual.valor)+1; //G
+             esq.dist = abs(esq.X - Goal.X) + abs(esq.Y - Goal.Y); //H
+             OPEN.push_back(esq);
+            }
+          
+          }
+          cond = 0;
+          if((dir.ent == "v" || dir.ent == "fp" || dir.ent == "bp") && dir.valor >= -5){
             for(int i=0;i<CLOSED.size();i++){
               if (dir.X == CLOSED[i].X && dir.Y == CLOSED[i].Y){
                 cond = 1; 
