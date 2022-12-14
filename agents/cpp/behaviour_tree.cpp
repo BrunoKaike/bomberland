@@ -4,7 +4,7 @@
 
 using namespace std;
 
-string ação;
+string acao;
 
 class Node {  
 	public:
@@ -50,7 +50,7 @@ class PosicionarBomba : public Node {
 		virtual bool run() override {
 			if(input == true){
 
-        ação = "posicionarBomba";
+        acao = "posicionarBomba";
         
       } 
 
@@ -67,7 +67,7 @@ class ExplodirBomba : public Node {
 		virtual bool run() override {
 			if(input == true){
 
-        ação = "explodirBomba";
+        acao = "explodirBomba";
         
       } 
 
@@ -84,11 +84,11 @@ class FugirDePerigo : public Node {
 		virtual bool run() override {
 			if(input == true){
 
-        ação = "fugir";
+        acao = "fugir";
         
       } else {
 
-        ação = "quebrarCaixa";
+        acao = "quebrarCaixa";
         
       }
 
@@ -104,7 +104,7 @@ class PegarPowerUp : public Node {
 		virtual bool run() override {
 			if(input == true){
 
-        ação = "pegarPowerUp";
+        acao = "pegarPowerUp";
         
       }
 
@@ -120,7 +120,7 @@ class PerseguirInimigo : public Node {
 		virtual bool run() override {
 			if(input == true){
 
-        ação = "perseguirInimigo";
+        acao = "perseguirInimigo";
         
       }
 
@@ -136,7 +136,7 @@ class Default : public Node {
 		virtual bool run() override {
 			if(input == true){
 
-        ação = "quebrarCaixa";
+        acao = "quebrarCaixa";
         
       }
 
@@ -166,7 +166,7 @@ string behaviourTree(Estado estadoGame) {
   
 	while (!main->run()) {}
 
-	cout << "Ação determinada pera árvore de comportamento: " << ação << endl;
+	cout << "Acao determinada pera árvore de comportamento: " << acao << endl;
   
-	return ação;
+	return acao;
 }

@@ -15,6 +15,8 @@ typedef struct{
   int Y;
   std::string ent;
   int valor;
+  int dist;
+  int custo;
   int Parentes[2];
 
 }Coordenadas;
@@ -41,12 +43,14 @@ std::vector<std::string> Agent::my_units;
 std::vector<std::string> Agent::enemy_units;
 Coordenadas Agent::mapa[15][15];
 
+std::vector<Coordenadas> OPEN, CLOSED, CAMINHO;
+Coordenadas Start,Goal,Actual,Movement;
+
 int Agent::tick;
+int tempo;
+std::string action;
 
-/*list<Coordenadas> OPEN;
-list<Coordenadas> CLOSED;
-
-Coordenadas Start, Goal;
+/*
 
 bool bombaOk(Coordenadas Pos,Coordenadas mapa[15][15]){
 
@@ -178,10 +182,6 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     
   }
 
-  mapa[My_Cords[1]][My_Cords[0]].ent = "P"; // remover futuramente
-  mapa[Enemy_Cords[1]][Enemy_Cords[0]].ent = "E";
-  mapa[Enemy_Cords[1]][Enemy_Cords[0]].valor = -1;
-
   for(size_t i = 0; i< maxX; i++){
     for(size_t j = 0; j< maxY; j++){
       std::cout << mapa[i][j].ent << " ";
@@ -190,7 +190,12 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     std::cout << " / ";
 
     for(size_t j = 0; j< maxY; j++){
-      std::cout << mapa[i][j].valor << " ";
+      if(mapa[i][j].valor>=0){
+        std::cout << " " << mapa[i][j].valor << " ";
+      }
+      else{
+        std::cout << mapa[i][j].valor << " ";
+      }
     }
 
     std::cout << std::endl; 
@@ -202,6 +207,11 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
   estadoGame.inimigoEmPerigo = (mapa[Enemy_Cords[1]][Enemy_Cords[0]].valor == -5) ? true : false;
   estadoGame.estaVizinho = (distanciaAbsoluta(My_Cords[1], My_Cords[0], Enemy_Cords[1], Enemy_Cords[0])==1) ? true : false;
 
+  /*std::cout<< "A" <<estadoGame.estaEmPerigo <<std::endl;
+  std::cout<< "B" <<estadoGame.inimigoEmPerigo <<std::endl;
+  std::cout<< "C" <<estadoGame.estaVizinho <<std::endl;
+  std::cout<< "D" <<estadoGame.powerUpNoMapa <<std::endl;*/
+
   int duracaoPowerUpGelo = 15;
   
   estadoGame.pegouPowerUpGelo - (mapa[My_Cords[1]][My_Cords[0]].ent == "fp") ? true : false;
@@ -212,6 +222,178 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
   if(tick <= tempo){
     estadoGame.pegouPowerUpGelo = true;
   }
+  //std::cout<< "E" <<estadoGame.pegouPowerUpGelo <<std::endl;
+
+  Start.X = My_Cords[0];
+  Start.Y = My_Cords[1];
+  Start.custo = mapa[Start.X][Start.Y].valor;
+  Start.ent = mapa[Start.X][Start.Y].ent;
+  Start.dist = 0; //H
+  Start.Parentes[0] = -1, Start.Parentes[1] = -1;
+
+  Movement = Start;
+
+  Goal.X = 7;
+  Goal.Y = 7;
+  Goal.valor = mapa[Goal.X][Goal.Y].valor;
+
+  if(Start.X == Goal.X && Start.Y == Goal.Y){
+    std::cout<<"CHEGUEI!!!"<<std::endl;
+  }
+
+  else{
+
+    OPEN.clear();
+    CLOSED.clear();
+    CAMINHO.clear();
+
+    OPEN.push_back(Start);
+    
+    do{
+      int index = 0;
+      int min = abs(OPEN[0].valor)+OPEN[0].dist;
+      Actual = OPEN[0];
+
+      for(int i=0; i < OPEN.size();i++){
+        if(abs(OPEN[i].valor)+OPEN[i].dist < min){
+          std::cout<<"MUDEI: "<<"Actual - X:"<<Actual.X<<" Y: "<<Actual.Y<<" valor: "<<Actual.valor<<" ent: "<<Actual.ent<<std::endl;
+          Actual = OPEN[i];
+          index = i;
+          min = abs(OPEN[i].valor)+OPEN[i].dist;
+        }
+      }
+      
+        OPEN.erase(OPEN.begin()+index);
+
+      if(Actual.X == Goal.X && Actual.Y == Goal.Y){
+        std::cout<<"ACHEI!!!"<<std::endl;
+        CAMINHO.push_back(Actual);
+        for(int i = 0; i<CLOSED.size();i++){
+
+          if(Actual.Parentes[0]!=-1 && Actual.Parentes[1]!=-1){
+
+            for(int j=0;j<CLOSED.size();j++){
+              if(Actual.Parentes[0] == CLOSED[j].X && Actual.Parentes[1] == CLOSED[j].Y){
+                Actual = CLOSED[j];
+              }
+            }
+
+            CAMINHO.push_back(Actual);
+          }
+
+          else{
+            Movement = CAMINHO[CAMINHO.size()-2];
+          }
+        }
+        
+      
+      }
+      else{
+        int cond = 0;
+        Coordenadas 
+        cima = mapa[Actual.Y-1][Actual.X],
+        baixo = mapa[Actual.Y+1][Actual.X],
+        esq = mapa[Actual.Y][Actual.X-1],
+        dir = mapa[Actual.Y][Actual.X+1];
+
+        std::cout<<"Actual - X:"<<Actual.X<<" Y: "<<Actual.Y<<" valor: "<<Actual.valor<<" ent: "<<Actual.ent<<std::endl;
+        std::cout<<"cima - X:"<<cima.Y<<" Y: "<<cima.X<<" valor: "<<cima.valor<<" ent: "<<cima.ent<<std::endl;
+        std::cout<<"baix - X:"<<baixo.Y<<" Y: "<<baixo.X<<" valor: "<<baixo.valor<<" ent: "<<baixo.ent<<std::endl;
+        std::cout<<"esq - X:"<<esq.Y<<" Y: "<<esq.X<<" valor: "<<esq.valor<<" ent: "<<esq.ent<<std::endl;
+        std::cout<<"dir - X:"<<dir.Y<<" Y: "<<dir.X<<" valor: "<<dir.valor<<" ent: "<<dir.ent<<std::endl;
+
+        if(cima.ent == "v" && cima.valor >= -3){
+          for(int i=0;i<CLOSED.size();i++){
+            if (cima.X == CLOSED[i].X && cima.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            std::cout<<"CIMA ENTROU"<<std::endl;
+            cima.Parentes[0] = Actual.X;
+            cima.Parentes[1] = Actual.Y;
+            cima.custo = abs(Actual.valor) + 1; //G
+            cima.dist = abs(cima.X - Goal.X) - abs(cima.Y - Goal.Y); //H
+            OPEN.push_back(cima);
+          }
+        }
+        cond = 0;
+        if(baixo.ent == "v" && baixo.valor >= -3){
+          for(int i=0;i<CLOSED.size();i++){
+            if (baixo.X == CLOSED[i].X && baixo.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            std::cout<<"BAIXO ENTROU"<<std::endl;
+            baixo.Parentes[0] = Actual.X;
+            baixo.Parentes[1] = Actual.Y;
+            baixo.custo = abs(Actual.valor)+1; //G
+            baixo.dist = abs(baixo.X - Goal.X) - abs(baixo.Y - Goal.Y); //H
+            OPEN.push_back(baixo);
+          }
+        }
+        
+        cond = 0;
+        if(esq.ent == "v" && esq.valor >= -3){
+          for(int i=0;i<CLOSED.size();i++){
+            if (esq.X == CLOSED[i].X && esq.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            std::cout<<"ESQUERDA ENTROU"<<std::endl;
+            esq.Parentes[0] = Actual.X;
+            esq.Parentes[1] = Actual.Y;
+            esq.custo = abs(Actual.valor)+1; //G
+            esq.dist = abs(esq.X - Goal.X) - abs(esq.Y - Goal.Y); //H
+            OPEN.push_back(esq);
+          }
+          
+        }
+        cond = 0;
+        if(dir.ent == "v" && dir.valor >= -3){
+          for(int i=0;i<CLOSED.size();i++){
+            if (dir.X == CLOSED[i].X && dir.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond!=1){
+            std::cout<<"DIREITA ENTROU"<<std::endl;
+            dir.Parentes[0] = Actual.X;
+            dir.Parentes[1] = Actual.Y;
+            dir.custo = Actual.valor; //G
+            dir.dist = abs(dir.X - Goal.X) - abs(dir.Y - Goal.Y); //H
+            OPEN.push_back(dir);
+          }
+        }
+        CLOSED.push_back(Actual);
+      }
+      std::cout<<"TAMANHO DO OPEN : "<<OPEN.size()<<std::endl;
+      std::cout<<"TAMANHO DO CLOSED : "<<CLOSED.size()<<std::endl;
+    }while(!OPEN.empty());
+    std::cout<<"SAÍ DO WHILE / "<<Movement.X<<" "<<Movement.Y<<std::endl;
+  }
+  
+  if(Movement.Y == My_Cords[1]-1){
+    action = "up";
+  }
+
+  else if(Movement.Y == My_Cords[1]+1){
+    action = "down";
+  }
+
+  else if(Movement.X == My_Cords[0]-1){
+    action = "left";
+  }
+
+  else if(Movement.X == My_Cords[0]+1){
+    action = "right";
+  }
   
 
   srand(1234567 * (my_agent_id == "a" ? 1 : 0) + tick * 100 + 13);
@@ -221,7 +403,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
   {
     const json& unit = game_state["unit_state"][unit_id];
     if (unit["hp"] <= 0) continue;
-    std::string action = _actions[rand() % _actions.size()];
+    //action = _actions[rand() % _actions.size()];
     std::cout << "action: " << unit_id << " -> " << action << std::endl;
 
     if (action == "up" || action == "left" || action == "right" || action == "down")
