@@ -33,6 +33,9 @@ private:
 
   static void on_game_tick(int tick, const json& game_state);
   static int distanciaAbsoluta(int x1,int y1,int x2,int y2);
+  static Coordenadas A_Estrela(Coordenadas mapa[15][15]);
+  static Coordenadas caixa(Coordenadas mapa[15][15]);
+  static Coordenadas pedra(Coordenadas mapa[15][15]);
 public:
   static void run();
 };
@@ -183,7 +186,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     
   }
 
-  for(size_t i = 0; i< maxX; i++){
+  /*for(size_t i = 0; i< maxX; i++){
     for(size_t j = 0; j< maxY; j++){
       std::cout << mapa[i][j].ent << " ";
     }
@@ -200,7 +203,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     }
 
     std::cout << std::endl; 
-  }
+  }*/
   
   //INICIALIZANDO ESTADOS
   
@@ -232,21 +235,109 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
 
   Movement = Start;
 
-  Goal.X = 12;
-  Goal.Y = 6;
+  Goal.X = 7;
+  Goal.Y = 4;
   Goal.valor = mapa[Goal.Y][Goal.X].valor;
+
+  Coordenadas caixas,pedras;
 
   if(Start.X == Goal.X && Start.Y == Goal.Y){
     std::cout<<"CHEGUEI!!!"<<std::endl;
+    Movement = Start;
+    action = "";
+    std::cout<<"MOVEMENT - X:"<<Movement.X<<" Y: "<<Movement.Y<<std::endl;
   }
 
   else{
+    Movement = A_Estrela(mapa);
+  }
 
-    OPEN.clear();
-    CLOSED.clear();
-    CAMINHO.clear();
+  caixas = caixa(mapa);
+  std::cout<<"CAIXA - X:"<<caixas.X<<" Y: "<<caixas.Y<<std::endl;
+  
+  
 
-    OPEN.push_back(Start);
+  pedras = pedra(mapa);
+  std::cout<<"PEDRA - X:"<<pedras.X<<" Y: "<<pedras.Y<<std::endl;
+  
+
+  std::cout<<"XM"<<Movement.X <<"YM"<<Movement.Y <<"XMC"<<My_Cords[0] <<"YMC"<<My_Cords[1]<<std::endl;
+
+  if(Movement.Y == My_Cords[1]-1){
+    action = "up";
+  }
+
+  else if(Movement.Y == My_Cords[1]+1){
+    action = "down";
+  }
+
+  else if(Movement.X == My_Cords[0]-1){
+    action = "left";
+  }
+
+  else if(Movement.X == My_Cords[0]+1){
+    action = "right";
+  }
+  
+
+  srand(1234567 * (my_agent_id == "a" ? 1 : 0) + tick * 100 + 13);
+
+  // send each (alive) unit a random action
+  for (const auto unit_id: my_units)
+  {
+    const json& unit = game_state["unit_state"][unit_id];
+    if (unit["hp"] <= 0) continue;
+    //action = _actions[rand() % _actions.size()];
+    std::cout << "action: " << unit_id << " -> " << action << std::endl;
+
+    if (action == "up" || action == "left" || action == "right" || action == "down")
+    {
+      GameState::send_move(action, unit_id);
+    }
+    else if (action == "bomb")
+    {
+      GameState::send_bomb(unit_id);
+    }
+    else if (action == "detonate")
+    {
+      const json& entities = game_state["entities"];
+      for (const auto& entity: entities) 
+      {
+        if (entity["type"] == "b" && entity["unit_id"] == unit_id) 
+        {
+          int x = entity["x"], y = entity["y"];
+          GameState::send_detonate(x, y, unit_id);
+          break;
+        }
+      }
+    }
+    else 
+    {
+      std::cerr << "Unhandled action: " << action << " for unit " << unit_id << std::endl;
+    }
+  }
+}
+
+int Agent::distanciaAbsoluta(int x1,int y1,int x2,int y2) {
+  int distanciaX = x1 - x2;
+  int distanciaY = y1 - y2;
+  return abs(distanciaX) + abs(distanciaY);
+}
+
+int main()
+{
+  Agent::run();
+}
+
+Coordenadas Agent::A_Estrela(Coordenadas mapa[15][15]){
+
+  Coordenadas caminho;
+
+  OPEN.clear();
+  CLOSED.clear();
+  CAMINHO.clear();
+
+  OPEN.push_back(Start);
 
     bool stop;
     
@@ -283,9 +374,9 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
         }while(Actual.Parentes[0]!=-1 && Actual.Parentes[1]!=-1);
           
         std::cout<<"Movement!"<<std::endl;
-        Movement = CAMINHO[CAMINHO.size()-2];
+        caminho = CAMINHO[CAMINHO.size()-2];
         stop = true;
-        break;
+        return caminho;
       
       }
       else{
@@ -393,74 +484,203 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
     }while(!OPEN.empty());
 
     std::cout<<"SAÍ DO WHILE / "<<Movement.X<<" "<<Movement.Y<<std::endl;
-  }
-  
-  std::cout<<"XM"<<Movement.X <<"YM"<<Movement.Y <<"XMC"<<My_Cords[0] <<"YMC"<<My_Cords[1]<<std::endl;
+    return Start;
+}
 
-  if(Movement.Y == My_Cords[1]-1){
-    action = "up";
-  }
+Coordenadas Agent::caixa(Coordenadas mapa[15][15]){
 
-  else if(Movement.Y == My_Cords[1]+1){
-    action = "down";
-  }
+  OPEN.clear();
+  CLOSED.clear();
 
-  else if(Movement.X == My_Cords[0]-1){
-    action = "left";
-  }
+  OPEN.push_back(Start);
+    
+    do{
+      Actual = OPEN[0];
+      OPEN.erase(OPEN.begin());
 
-  else if(Movement.X == My_Cords[0]+1){
-    action = "right";
-  }
-  
-
-  srand(1234567 * (my_agent_id == "a" ? 1 : 0) + tick * 100 + 13);
-
-  // send each (alive) unit a random action
-  for (const auto unit_id: my_units)
-  {
-    const json& unit = game_state["unit_state"][unit_id];
-    if (unit["hp"] <= 0) continue;
-    //action = _actions[rand() % _actions.size()];
-    std::cout << "action: " << unit_id << " -> " << action << std::endl;
-
-    if (action == "up" || action == "left" || action == "right" || action == "down")
-    {
-      GameState::send_move(action, unit_id);
-    }
-    else if (action == "bomb")
-    {
-      GameState::send_bomb(unit_id);
-    }
-    else if (action == "detonate")
-    {
-      const json& entities = game_state["entities"];
-      for (const auto& entity: entities) 
-      {
-        if (entity["type"] == "b" && entity["unit_id"] == unit_id) 
-        {
-          int x = entity["x"], y = entity["y"];
-          GameState::send_detonate(x, y, unit_id);
-          break;
+        int cond = 0;
+        Coordenadas cima ,baixo, esq, dir;
+        
+        if(Actual.Y-1>=0){
+          cima = mapa[Actual.Y-1][Actual.X];
         }
-      }
-    }
-    else 
-    {
-      std::cerr << "Unhandled action: " << action << " for unit " << unit_id << std::endl;
-    }
-  }
+        if(Actual.Y+1<15){
+          baixo = mapa[Actual.Y+1][Actual.X];
+        }
+        if(Actual.X-1>=0){
+          esq = mapa[Actual.Y][Actual.X-1];
+        }
+        if(Actual.X+1<15){
+          dir = mapa[Actual.Y][Actual.X+1];
+        }
+        
+
+        if(cima.ent == "w"){
+          return Actual;
+        }
+        else if(cima.ent == "v"){
+          for(int i=0;i<CLOSED.size();i++){
+            if (cima.X == CLOSED[i].X && cima.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            OPEN.push_back(cima);
+          }
+        }
+          
+        
+        cond = 0;
+        if(baixo.ent == "w"){
+          return Actual;
+        }
+        else if(baixo.ent == "v"){
+          for(int i=0;i<CLOSED.size();i++){
+            if (baixo.X == CLOSED[i].X && baixo.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            OPEN.push_back(baixo);
+          }
+        }
+        
+        if(esq.ent == "w"){
+          return Actual;
+        }
+        else if(esq.ent == "v"){
+          for(int i=0;i<CLOSED.size();i++){
+            if (esq.X == CLOSED[i].X && esq.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            OPEN.push_back(esq);
+          }
+        }
+        
+        if(dir.ent == "w"){
+          return Actual;
+        }
+        else if(dir.ent == "v"){
+          for(int i=0;i<CLOSED.size();i++){
+            if (dir.X == CLOSED[i].X && dir.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            OPEN.push_back(dir);
+          }
+        }
+        
+        CLOSED.push_back(Actual);
+
+    }while(!OPEN.empty());
+
+    std::cout<<"SAÍ DO WHILE - CAIXA"<<std::endl;
+
+    return Start;
 }
 
-int Agent::distanciaAbsoluta(int x1,int y1,int x2,int y2) {
-  int distanciaX = x1 - x2;
-  int distanciaY = y1 - y2;
-  return abs(distanciaX) + abs(distanciaY);
+Coordenadas Agent::pedra(Coordenadas mapa[15][15]){
+
+  OPEN.clear();
+  CLOSED.clear();
+
+  OPEN.push_back(Start);
+    
+    do{
+      Actual = OPEN[0];
+      OPEN.erase(OPEN.begin());
+
+        int cond = 0;
+        Coordenadas cima ,baixo, esq, dir;
+        
+        if(Actual.Y-1>=0){
+          cima = mapa[Actual.Y-1][Actual.X];
+        }
+        if(Actual.Y+1<15){
+          baixo = mapa[Actual.Y+1][Actual.X];
+        }
+        if(Actual.X-1>=0){
+          esq = mapa[Actual.Y][Actual.X-1];
+        }
+        if(Actual.X+1<15){
+          dir = mapa[Actual.Y][Actual.X+1];
+        }
+        
+
+        if(cima.ent == "o"){
+          return Actual;
+        }
+        else if(cima.ent == "v"){
+          for(int i=0;i<CLOSED.size();i++){
+            if (cima.X == CLOSED[i].X && cima.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            OPEN.push_back(cima);
+          }
+        }
+          
+        
+        cond = 0;
+        if(baixo.ent == "o"){
+          return Actual;
+        }
+        else if(baixo.ent == "v"){
+          for(int i=0;i<CLOSED.size();i++){
+            if (baixo.X == CLOSED[i].X && baixo.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            OPEN.push_back(baixo);
+          }
+        }
+        
+        if(esq.ent == "o"){
+          return Actual;
+        }
+        else if(esq.ent == "v"){
+          for(int i=0;i<CLOSED.size();i++){
+            if (esq.X == CLOSED[i].X && esq.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            OPEN.push_back(esq);
+          }
+        }
+        
+        if(dir.ent == "o"){
+          return Actual;
+        }
+        else if(dir.ent == "v"){
+          for(int i=0;i<CLOSED.size();i++){
+            if (dir.X == CLOSED[i].X && dir.Y == CLOSED[i].Y){
+              cond = 1; 
+              break;
+            }
+          }
+          if(cond !=1){
+            OPEN.push_back(dir);
+          }
+        }
+        
+        CLOSED.push_back(Actual);
+
+    }while(!OPEN.empty());
+
+    std::cout<<"SAÍ DO WHILE - PEDRA"<<std::endl;
+
+    return Start;
 }
-
-int main()
-{
-  Agent::run();
-}
-
-
