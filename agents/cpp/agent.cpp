@@ -232,8 +232,8 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
 
   Movement = Start;
 
-  Goal.X = Enemy_Cords[0]+1;
-  Goal.Y = Enemy_Cords[1];
+  Goal.X = 12;
+  Goal.Y = 6;
   Goal.valor = mapa[Goal.Y][Goal.X].valor;
 
   if(Start.X == Goal.X && Start.Y == Goal.Y){
@@ -290,18 +290,27 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
       }
       else{
         int cond = 0;
-        Coordenadas 
-        cima = mapa[Actual.Y-1][Actual.X],
-        baixo = mapa[Actual.Y+1][Actual.X],
-        esq = mapa[Actual.Y][Actual.X-1],
-        dir = mapa[Actual.Y][Actual.X+1];
-
-
+        Coordenadas cima ,baixo, esq, dir;
+        
+        if(Actual.Y-1>=0){
+          cima = mapa[Actual.Y-1][Actual.X];
+        }
+        if(Actual.Y+1<15){
+          baixo = mapa[Actual.Y+1][Actual.X];
+        }
+        if(Actual.X-1>=0){
+          esq = mapa[Actual.Y][Actual.X-1];
+        }
+        if(Actual.X+1<15){
+          dir = mapa[Actual.Y][Actual.X+1];
+        }
+        
         std::cout<<"Actual - X:"<<Actual.X<<" Y: "<<Actual.Y<<" valor: "<<Actual.valor<<" ent: "<<Actual.ent <<std::endl;
         std::cout<<"cima - X:"<<cima.X<<" Y: "<<cima.Y<<" valor: "<<cima.valor<<" ent: "<<cima.ent << cima.dist  <<std::endl;
         std::cout<<"baix - X:"<<baixo.X<<" Y: "<<baixo.Y<<" valor: "<<baixo.valor<<" ent: "<<baixo.ent << baixo.dist<<std::endl;
         std::cout<<"esq - X:"<<esq.X<<" Y: "<<esq.Y<<" valor: "<<esq.valor<<" ent: "<<esq.ent<<std::endl;
         std::cout<<"dir - X:"<<dir.X<<" Y: "<<dir.Y<<" valor: "<<dir.valor<<" ent: "<<dir.ent <<std::endl;
+        
         if(cima.ent == "v" && cima.valor >= -3){
           for(int i=0;i<CLOSED.size();i++){
             if (cima.X == CLOSED[i].X && cima.Y == CLOSED[i].Y){
@@ -319,8 +328,7 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
             OPEN.push_back(cima);
             //std::cout<<"OP"<<"X:"<<OPEN[0].X<<" Y: "<<OPEN[0].Y<<std::endl;
             //std::cout<<"OP"<<"X:"<<cima.X<<" Y: "<<cima.Y<<std::endl;
-
-          }
+           }
         }
         cond = 0;
         if(baixo.ent == "v" && baixo.valor >= -3){
@@ -328,59 +336,62 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
             if (baixo.X == CLOSED[i].X && baixo.Y == CLOSED[i].Y){
               cond = 1; 
               break;
-            }
+           }
           }
           if(cond !=1){
             std::cout<<"BAIXO ENTROU"<<std::endl;
             baixo.Parentes[0] = Actual.X;
-            baixo.Parentes[1] = Actual.Y;
-            baixo.custo = abs(Actual.valor)+1; //G
-            baixo.dist = abs(baixo.X - Goal.X) + abs(baixo.Y - Goal.Y); //H
-            std::cout<<"baixo HEURISTICA"<< baixo.dist  <<std::endl;
-            OPEN.push_back(baixo);
+              baixo.Parentes[1] = Actual.Y;
+             baixo.custo = abs(Actual.valor)+1; //G
+             baixo.dist = abs(baixo.X - Goal.X) + abs(baixo.Y - Goal.Y); //H
+             std::cout<<"baixo HEURISTICA"<< baixo.dist  <<std::endl;
+             OPEN.push_back(baixo);
+            }
           }
-        }
         
-        cond = 0;
-        if(esq.ent == "v" && esq.valor >= -3){
-          for(int i=0;i<CLOSED.size();i++){
-            if (esq.X == CLOSED[i].X && esq.Y == CLOSED[i].Y){
-              cond = 1; 
-              break;
+          cond = 0;
+          if(esq.ent == "v" && esq.valor >= -3){
+            for(int i=0;i<CLOSED.size();i++){
+             if (esq.X == CLOSED[i].X && esq.Y == CLOSED[i].Y){
+               cond = 1; 
+               break;
+              }
             }
-          }
-          if(cond !=1){
-            std::cout<<"ESQUERDA ENTROU"<<std::endl;
-            esq.Parentes[0] = Actual.X;
-            esq.Parentes[1] = Actual.Y;
-            esq.custo = abs(Actual.valor)+1; //G
-            esq.dist = abs(esq.X - Goal.X) + abs(esq.Y - Goal.Y); //H
-            OPEN.push_back(esq);
-          }
+            if(cond !=1){
+              std::cout<<"ESQUERDA ENTROU"<<std::endl;
+              esq.Parentes[0] = Actual.X;
+              esq.Parentes[1] = Actual.Y;
+              esq.custo = abs(Actual.valor)+1; //G
+             esq.dist = abs(esq.X - Goal.X) + abs(esq.Y - Goal.Y); //H
+             OPEN.push_back(esq);
+            }
           
-        }
-        cond = 0;
-        if(dir.ent == "v" && dir.valor >= -3){
-          for(int i=0;i<CLOSED.size();i++){
-            if (dir.X == CLOSED[i].X && dir.Y == CLOSED[i].Y){
-              cond = 1; 
-              break;
+          }
+          cond = 0;
+          if(dir.ent == "v" && dir.valor >= -3){
+            for(int i=0;i<CLOSED.size();i++){
+              if (dir.X == CLOSED[i].X && dir.Y == CLOSED[i].Y){
+                cond = 1; 
+                break;
+             }
+            }
+            if(cond!=1){
+              std::cout<<"DIREITA ENTROU"<<std::endl;
+              dir.Parentes[0] = Actual.X;
+              dir.Parentes[1] = Actual.Y;
+              dir.custo = Actual.valor; //G
+              dir.dist = abs(dir.X - Goal.X) + abs(dir.Y - Goal.Y); //H
+              OPEN.push_back(dir);
             }
           }
-          if(cond!=1){
-            std::cout<<"DIREITA ENTROU"<<std::endl;
-            dir.Parentes[0] = Actual.X;
-            dir.Parentes[1] = Actual.Y;
-            dir.custo = Actual.valor; //G
-            dir.dist = abs(dir.X - Goal.X) + abs(dir.Y - Goal.Y); //H
-            OPEN.push_back(dir);
-          }
-        }
-        CLOSED.push_back(Actual);
+          CLOSED.push_back(Actual);
+        
       }
       std::cout<<"TAMANHO DO OPEN : "<<OPEN.size()<<std::endl;
       std::cout<<"TAMANHO DO CLOSED : "<<CLOSED.size()<<std::endl;
+
     }while(!OPEN.empty());
+
     std::cout<<"SAÍ DO WHILE / "<<Movement.X<<" "<<Movement.Y<<std::endl;
   }
   
