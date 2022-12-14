@@ -258,8 +258,8 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
             int x = entity["x"], y = entity["y"];
             y = (y-14) * -1;
             if((abs(Enemy_Cords[0]-x)<=(int)entity["blast_diameter"]/2 ||abs(Enemy_Cords[1]-y)<=(int)entity["blast_diameter"]/2
-                || mapa[x-1][y].ent == "w" || mapa[x+1][y].ent == "w" || mapa[x][y-1].ent == "w" || mapa[x][y+1].ent == "w"
-                || mapa[x-1][y].ent == "o" || mapa[x+1][y].ent == "o" || mapa[x][y-1].ent == "0" || mapa[x][y+1].ent == "o") && !estadoGame.estaEmPerigo){
+                || mapa[y-1][x].ent == "w" || mapa[y+1][x].ent == "w" || mapa[y][x-1].ent == "w" || mapa[y][x+1].ent == "w"
+                || mapa[y-1][x].ent == "o" || mapa[y+1][x].ent == "o" || mapa[y][x-1].ent == "0" || mapa[y][x+1].ent == "o") && !estadoGame.estaEmPerigo){
               GameState::send_detonate(x, y, unit_id);
               break;
             }
