@@ -6,5 +6,6 @@ struct Estado {
   bool powerUpNoMapa;
   bool pegouPowerUpGelo;
   bool estaPertoDoInimigo;
+  bool explodeCaixa;
 
 };

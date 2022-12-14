@@ -54,6 +54,7 @@ std::vector<Coordenadas> OPEN, CLOSED, CAMINHO;
 Coordenadas Start,Goal,Actual,Movement;
 
 int Agent::tick;
+int bombas = 0;
 int tempo;
 std::string action;
 
@@ -240,14 +241,18 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
 
   Movement = Start;
   action = " ";
+  
 
   if(saida == "posicionarBomba"){
 
     action = "bomb";
+    estadoGame.explodeCaixa = true;
+    bombas++;
  
   } else if(saida == "explodirBomba"){
 
     action = "detonate";
+    bombas--;
 
     for (const auto unit_id: my_units){
       const json& entities = game_state["entities"];
@@ -257,12 +262,15 @@ void Agent::on_game_tick(int tick_nr, const json& game_state)
           {
             int x = entity["x"], y = entity["y"];
             y = (y-14) * -1;
-            if((abs(Enemy_Cords[0]-x)<=(int)entity["blast_diameter"]/2 ||abs(Enemy_Cords[1]-y)<=(int)entity["blast_diameter"]/2
-                || mapa[y-1][x].ent == "w" || mapa[y+1][x].ent == "w" || mapa[y][x-1].ent == "w" || mapa[y][x+1].ent == "w"
-                || mapa[y-1][x].ent == "o" || mapa[y+1][x].ent == "o" || mapa[y][x-1].ent == "0" || mapa[y][x+1].ent == "o") && !estadoGame.estaEmPerigo){
-              GameState::send_detonate(x, y, unit_id);
-              break;
+            if(bombas>0){
+                if((abs(Enemy_Cords[0]-x)<=(int)entity["blast_diameter"]/2 ||abs(Enemy_Cords[1]-y)<=(int)entity["blast_diameter"]/2
+                  || mapa[y-1][x].ent == "w" || mapa[y+1][x].ent == "w" || mapa[y][x-1].ent == "w" || mapa[y][x+1].ent == "w"
+                  || mapa[y-1][x].ent == "o" || mapa[y+1][x].ent == "o" || mapa[y][x-1].ent == "0" || mapa[y][x+1].ent == "o") && !estadoGame.estaEmPerigo){
+                  GameState::send_detonate(x, y, unit_id);
+                  break;
+                }
             }
+            
           }
         }
     }

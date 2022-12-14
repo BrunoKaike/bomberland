@@ -149,7 +149,7 @@ string behaviourTree(Estado estadoGame) {
   Selector* main = new Selector;
   Selector* selectorGeral = new Selector;
   PosicionarBomba* posicionarBomba = new PosicionarBomba(!estadoGame.estaEmPerigo &&estadoGame.estaVizinho && estadoGame.pegouPowerUpGelo);
-  ExplodirBomba* explodirBomba = new ExplodirBomba(!estadoGame.estaEmPerigo && estadoGame.inimigoEmPerigo);
+  ExplodirBomba* explodirBomba = new ExplodirBomba(!estadoGame.estaEmPerigo && (estadoGame.inimigoEmPerigo || estadoGame.explodeCaixa));
   PegarPowerUp* pegarPowerUp = new PegarPowerUp(!estadoGame.estaEmPerigo && estadoGame.powerUpNoMapa);
   PerseguirInimigo* perseguirInimigo = new PerseguirInimigo(!estadoGame.estaEmPerigo && !estadoGame.estaVizinho && estadoGame.pegouPowerUpGelo);
   FugirDePerigo* fugirDePerigo = new FugirDePerigo(estadoGame.estaEmPerigo);
